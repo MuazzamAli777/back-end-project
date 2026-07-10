@@ -5,8 +5,8 @@ const app =express();
 
 // cros pay origin set kiya 
 app.use(cors({
-    origin: process.env.CROS_ORIGIN,
-    credentials:TRUE
+    origin: process.env.CROSS_ORIGIN,
+    credentials:true
 }))
 
 // json formate pay limit lagai 
@@ -27,7 +27,15 @@ app.use(express.static("public"))
 
 //cookie parser ko 
 
-app.use(cookieParser)
+app.use(cookieParser())
 
+// routes folder say routers import kra 
+import useRouter from "./routes/user.route.js"
+
+//routes declaration 
+app.use("/api/v1/users/",useRouter)
+
+
+//yah is tarah sy hoga na http://localhost:8000/users/register
 
 export {app}

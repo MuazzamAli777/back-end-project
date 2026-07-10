@@ -1,5 +1,6 @@
 import connentdb from "./db/index.js";
 import dotenv from "dotenv";
+import cloudinary from "./utils/Cloudinary.js";
 dotenv.config();
 
 import { app } from "./app.js";
@@ -14,13 +15,18 @@ connentdb()
       app.on("error", (error) => {
         console.log("App Error:", error);
         throw error;
-      })
+      }) 
+      
+      
     }
 
   )
   .catch((error) => {
     console.log(`connection failed,${error}`)
   })
+  
+
+ // console.log(cloudinary.config())
 // (async () => {
 //   try {
 //     const connectionInstance = await mongoose.connect(
