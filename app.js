@@ -30,10 +30,10 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
 // routes folder say routers import kra 
-import useRouter from "./routes/user.route.js"
+import {router} from "./routes/user.route.js"
 
 //routes declaration 
-app.use("/api/v1/users/",useRouter)
+app.use("/api/v1/users/",router)
 
 
 //yah is tarah sy hoga na http://localhost:8000/users/register
