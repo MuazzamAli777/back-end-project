@@ -113,7 +113,10 @@ const registeruser = asyncHandler(async (req, res) => {
         const refresh_token = await user.generateRefreshToken()
  
         user.refreshtoken=refresh_token //override ki yaha 
-       await user.save({validationBeforeSave:false})
+
+      await user.save({
+    validateBeforeSave: false
+});
 
        return {access_token,refresh_token}
 
@@ -132,7 +135,7 @@ const login_user = asyncHandler(async (req, res) => {
     //response
     const { username, password, email } = req.body
 
-    if (!username || !email) {
+    if (!(username || email)) {
         throw new apierror(404, "username or email are required ")
 
     }
@@ -161,39 +164,47 @@ const options={
 
 return res
 .status(200)
-.Cookie("accesstoken",access_token,options)
-.Cookie("refreshtoken",refresh_token,options)
+.cookie("accesstoken", access_token, options)
+.cookie("refreshtoken", refresh_token, options)
 .json(
-    200,{
-        user:logged_in,access_token,refresh_token
-    },
-    "user is successfully login "
-)
+    new apiresponse(
+        200,
+        {
+            user: logged_in,
+            access_token,
+            refresh_token
+        },
+        "User logged in successfully"
+    )
+);
 
 })
 
 const logout_user=asyncHandler(async(req,res)=>{
-    await User.findByIdAndDelete(
-        req.user._id,{
+    await User.findByIdAndUpdate(
+    req.user._id,
+    {
+        $unset:{
+   refreshtoken:1
+}
+    },
+    {
+        new: true
+    }
+);
 
-
-            $set:{
-                refreshtoken:undefined
-            },
-           
-        },
-         {
-                new :true
-            },
-
-    )
-
-    options={
+    const options={
 httpOnly:true,
 secure:true
     }
 
-    return res.status(200).clearCookies("accesstoken").clearCookies("refreshtoken").json(200,{},"user logout successfully ")
+   return res
+.status(200)
+.clearCookie("accesstoken", options)
+.clearCookie("refreshtoken", options)
+.json(
+    new apiresponse(200, {}, "User logout successfully")
+);
     
 })
 
