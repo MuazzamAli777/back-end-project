@@ -384,7 +384,7 @@ return res
     const coverimagelocalpath=req.file?.path 
 
     if(!coverimagelocalpath){
-        throw apierror(400,"avatarlocalpath is not preset ")
+        throw apierror(400,"coverimage is not preset ")
 
     }
 
@@ -392,7 +392,7 @@ return res
 
     if(!coverimage)
     {
-        throw new apierror(400,"avatar is not uploaded on cloudinary ")
+        throw new apierror(400,"coverimage is not uploaded on cloudinary ")
     }
 
     const user= await User.findByIdAndUpdate(
