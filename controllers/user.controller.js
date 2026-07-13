@@ -5,6 +5,7 @@ import { User } from "../models/user.model.js";
 import { uplodoncloudinary } from "../utils/Cloudinary.js";
 import fs from "fs";
 import { secureHeapUsed } from "crypto";
+import jwt from "jsonwebtoken";
 
 const registeruser = asyncHandler(async (req, res) => {
     // get user details from frontend
@@ -16,6 +17,7 @@ const registeruser = asyncHandler(async (req, res) => {
     ) {
         // Clean up uploaded files if validation fails
         if (req.files?.avatar?.[0]?.path) {
+
             try { fs.unlinkSync(req.files.avatar[0].path); }
 
             catch (error) { }
@@ -81,11 +83,13 @@ const registeruser = asyncHandler(async (req, res) => {
         username: username.toLowerCase()
     });
 
-    // remove password and refresh token field from response
+    // remove password and refresh token field from db to show in console and apiresponse
     const created_user = await User.findById(user._id).select(
         "-password -refreshtoken"
     );
+
     console.log("mai ho created user :", created_user)
+
     if (!created_user) {
         throw new apierror(500, "something went wrong while registering the user");
     }
@@ -105,25 +109,26 @@ const registeruser = asyncHandler(async (req, res) => {
 
 
 
- const  genrateaccessandrefereshtoken=async(user_id)=>{
+const genrateaccessandrefereshtoken = async (user_id) => {
     try {
-        const user=await User.findById(user_id)
+        const user = await User.findById(user_id)
 
-        const access_token= await user.generateAccessToken()
+        const access_token = await user.generateAccessToken()
         const refresh_token = await user.generateRefreshToken()
- 
-        user.refreshtoken=refresh_token //override ki yaha 
 
-      await user.save({
-    validateBeforeSave: false
-});
+        user.refreshtoken = refresh_token //override ki yaha 
 
-       return {access_token,refresh_token}
+        await user.save({
+            validateBeforeSave: false
+        });
+
+        return { access_token, refresh_token }
 
     } catch (error) {
-        throw new apierror(500,"something went wrong during while generating access and referesh token ")
+        throw new apierror(500, "something went wrong during while generating access and referesh token ")
     }
-  }
+}
+
 
 const login_user = asyncHandler(async (req, res) => {
     // req.body ->data
@@ -140,73 +145,137 @@ const login_user = asyncHandler(async (req, res) => {
 
     }
     const user = await User.findOne({
-        $or: [{ email },{ username }]
+        $or: [{ email }, { username }]
     })
 
-    if(!user){
-        throw new apierror(404,"user is not found ")
+    if (!user) {
+        throw new apierror(404, "user is not found ")
     }
 
-    const ispasswordvalid=await user.isPasswordCorrect(password)
+    const ispasswordvalid = await user.isPasswordCorrect(password)
 
-    if(!ispasswordvalid){
-        throw new apierror(400,"password is invalid ")
+    if (!ispasswordvalid) {
+        throw new apierror(400, "password is invalid ")
     }
 
-    const {access_token,refresh_token}  =    await genrateaccessandrefereshtoken(user._id)
- 
-const logged_in =await User.findById(user._id).select("-password -refreshtoken")
+    const { access_token, refresh_token } = await genrateaccessandrefereshtoken(user._id)
 
-const options={
-    httpOnly:true,
-    secure:true
-}
+    const logged_in = await User.findById(user._id).select("-password -refreshtoken")
 
-return res
-.status(200)
-.cookie("accesstoken", access_token, options)
-.cookie("refreshtoken", refresh_token, options)
-.json(
-    new apiresponse(
-        200,
-        {
-            user: logged_in,
-            access_token,
-            refresh_token
-        },
-        "User logged in successfully"
-    )
-);
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(200)
+        .cookie("accesstoken", access_token, options)
+        .cookie("refreshtoken", refresh_token, options)
+        .json(
+            new apiresponse(
+                200,
+                {
+                    user: logged_in,
+                    access_token,
+                    refresh_token
+                },
+                "User logged in successfully"
+            )
+        );
 
 })
 
-const logout_user=asyncHandler(async(req,res)=>{
+const logout_user = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
-    req.user._id,
-    {
-        $unset:{
-   refreshtoken:1
-}
-    },
-    {
-        new: true
-    }
-);
+        req.user._id,
+        {
+            $unset: {
+                refreshtoken: 1
+            }
+        },
+        {
+            new: true
+        }
+    );
 
-    const options={
-httpOnly:true,
-secure:true
+    const options = {
+        httpOnly: true,
+        secure: true
     }
 
-   return res
-.status(200)
-.clearCookie("accesstoken", options)
-.clearCookie("refreshtoken", options)
-.json(
-    new apiresponse(200, {}, "User logout successfully")
-);
-    
+    return res
+        .status(200)
+        .clearCookie("accesstoken", options)
+        .clearCookie("refreshtoken", options)
+        .json(
+            new apiresponse(200, {}, "User logout successfully")
+        );
+
 })
 
-export { login_user ,logout_user}
+ const accesstoken_through_refreshtoken=asyncHandler(async(req,res)=>{
+
+
+   const incoming_refreshtoken= req.cookies.refreshtoken || req.body.refreshtoken  //yah browser frontend wala ha 
+
+   if (!incoming_refreshtoken){
+
+    throw new apierror(401,"unauthorized request0")
+   }
+try 
+
+{  
+    // yah incoming_refreshtoken ha na yah abhi encoded ha matlb vkjhdanhfvdiuhnsg k formate mai isko decode karna like 
+    // const decodedtoken  = {
+//     _id: "687abc123",
+//     iat: 1750000000,
+//     exp: 1750864000
+// }  islia jwt.verify use kiya 
+    
+       const decodedtoken=jwt.verify(
+        incoming_refreshtoken,
+        process.env.REFRESH_TOKEN
+       )
+    
+       const user = await User.findById(decodedtoken?._id)
+    
+       if(!user){
+    
+        throw new  apierror(401,"invalid refresh token")
+       }
+    
+             if(incoming_refreshtoken !== user?.refreshtoken)
+             {
+                throw new apierror("refresh token are expired")
+             }
+    
+              const options={
+                httpOnly:true,
+                secure:true
+              }
+    
+              const {access_token,newrefresh_token} =await genrateaccessandrefereshtoken(user._id)
+     
+        
+            return res
+            .status(200)
+            .cookie("accesstoken", access_token, options)
+            .cookie("refreshtoken", newrefresh_token, options)
+            .json(
+                new ApiResponse(
+                    200, 
+                    {accesstoken :access_token,
+                        refreshtoken: newrefresh_token},
+                    "Access token refreshed"
+                )
+            )
+} catch (error) {
+
+    throw new ApiError(401, error?.message || "Invalid refresh token")
+    
+}
+
+ })
+
+export { login_user, logout_user,accesstoken_through_refreshtoken }
 export { registeruser };

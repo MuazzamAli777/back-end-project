@@ -87,6 +87,7 @@ userschema.methods.generateAccessToken = function () {
         expiresIn: process.env.EXPIRY_ACCESS_TOKEN
     })
 }
+// Yahan this. ka matlab hota hai "jis user ne ye method call kiya hai."
 userschema.methods.generateRefreshToken = function () {
     return jwt.sign({
         _id: this._id,
