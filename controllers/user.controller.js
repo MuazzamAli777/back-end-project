@@ -14,7 +14,8 @@ const registeruser = asyncHandler(async (req, res) => {
     // validation - not empty
     if (
         [username, fullName, email, password].some((field) => !field || field.trim() === "")
-    ) {
+    )
+     {
         // Clean up uploaded files if validation fails
         if (req.files?.avatar?.[0]?.path) {
 
@@ -277,5 +278,138 @@ try
 
  })
 
-export { login_user, logout_user,accesstoken_through_refreshtoken }
+ const changepassword  =asyncHandler(async(req,res)=>{
+            
+    const {oldpassword,newpassword }=req.body
+
+         const user =await   User.findById(res.user?._id)
+
+         if(!user){
+            throw new apierror(401,"unauthorized access ")
+         }
+
+         const passwordcheck= await user.isPasswordCorrect(oldpassword)
+
+         if (!passwordcheck){
+            throw new apierror(400,"password is incorrect")
+         }
+
+         user.password=newpassword 
+         user.save({
+            validateBeforeSave:false
+         }) //yah ab jay ga userschema.pre("save") pay
+        return res.status(200)
+        .json(
+            new ApiResponse(
+                200,{
+
+                },
+                "password successfully changed "
+            )
+
+        )
+ })
+
+ const getcurrentuser=asyncHandler(async(req,res)=>{
+
+    const user =User.findById(req.user?._id)
+    return res
+    .status(200)
+    .json(new apiresponse (200,user,"current user fetch successfuly ")
+
+)
+ })
+
+ const useraccountupdate=asyncHandler(async(req,res)=>{
+    const {fullName,username}=req.body
+
+    if(!fullName || !username){
+        throw new apierror(404,"fullname and username are required ")
+
+    } 
+
+    const user =await User.findByIdAndUpdate(req.user?._id,{
+        $set:{
+fullName,
+username
+        }
+
+    },{
+        new:true  
+    }
+
+)
+.select(" -password -refreshtoken")
+
+return res
+.status(201).json(
+    new apiresponse(201,user,"account update successfulyy ")
+)
+
+ })
+
+ const updateavatar=asyncHandler(async(req,res)=>{
+
+    const avatarlocalpath=req.file?.path 
+
+    if(!avatarlocalpath){
+        throw apierror(400,"avatarlocalpath is not preset ")
+
+    }
+
+    const avatar =await uplodoncloudinary(avatarlocalpath)
+
+    if(!avatar)
+    {
+        throw new apierror(400,"avatar is not uploaded on cloudinary ")
+    }
+
+    const user= await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+         set:{
+            avatar:avatar.url
+         }
+
+        },{
+            new:true 
+        }
+    ).select("-password -refreshtoken")
+
+ })
+
+ 
+ const updatecoverimage=asyncHandler(async(req,res)=>{
+
+    const coverimagelocalpath=req.file?.path 
+
+    if(!coverimagelocalpath){
+        throw apierror(400,"avatarlocalpath is not preset ")
+
+    }
+
+    const coverimage =await uplodoncloudinary(coverimagelocalpath)
+
+    if(!coverimage)
+    {
+        throw new apierror(400,"avatar is not uploaded on cloudinary ")
+    }
+
+    const user= await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+         set:{
+            coverimage:coverimage.url
+         }
+
+        },{
+            new:true 
+        }
+    ).select("-password -refreshtoken")
+
+ })
+
+
+
+export { login_user, logout_user,accesstoken_through_refreshtoken ,changepassword,updateavatar,updatecoverimage}
 export { registeruser };
