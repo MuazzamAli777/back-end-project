@@ -375,7 +375,11 @@ return res
             new:true 
         }
     ).select("-password -refreshtoken")
-
+return res 
+.status(200)
+   .json (
+         new apiresponse(200,user,"avatar is update successfully")
+    )
  })
 
  
@@ -406,6 +410,12 @@ return res
             new:true 
         }
     ).select("-password -refreshtoken")
+
+   return res 
+.status(200)
+   .json (
+         new apiresponse(200,user,"coverimage is update successfully")
+    )
 
  })
 
