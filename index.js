@@ -1,6 +1,6 @@
 import connentdb from "./db/index.js";
 import dotenv from "dotenv";
-import cloudinary from "./utils/Cloudinary.js";
+
 dotenv.config();
 
 import { app } from "./app.js";
